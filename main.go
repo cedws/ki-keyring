@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/kronos-project/pubkey-extract/cmd"
+	"github.com/cedws/pubkey-extract/cmd"
 )
 
 func main() {

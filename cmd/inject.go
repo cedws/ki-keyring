@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/kronos-project/pubkey-extract/client"
+	"github.com/cedws/pubkey-extract/client"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
