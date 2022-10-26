@@ -1,4 +1,4 @@
-module github.com/kronos-project/pubkey-extract
+module github.com/cedws/pubkey-extract
 
 go 1.19
 

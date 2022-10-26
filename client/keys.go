@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kronos-project/pubkey-extract/scan"
+	"github.com/cedws/pubkey-extract/scan"
 	peparser "github.com/saferwall/pe"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/arch/x86/x86asm"
