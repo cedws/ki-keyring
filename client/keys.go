@@ -100,17 +100,9 @@ func locateKeys(data []byte) (buf []byte, err error) {
 }
 
 func deobfuscateXOR(buf []byte) int {
-	var operand int
-
-	for operand <= 0xFF {
-		// keep guessing XOR operand by looking for start of ASN.1 structure
-		if buf[0]^byte(operand) == 0x30 && buf[1]^byte(operand) == 0x82 {
-			break
-		}
-		operand++
-	}
-
-	if operand > 0xFF {
+	// guess XOR operand by looking for start of ASN.1 structure
+	operand := buf[0] ^ 0x30
+	if buf[1]^0x82 != operand {
 		log.Error("failed to guess XOR operand")
 		return 0
 	}
