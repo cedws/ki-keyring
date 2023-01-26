@@ -113,7 +113,7 @@ func deobfuscateXOR(buf []byte) int {
 		buf[i] = b ^ byte(operand)
 	}
 
-	return operand
+	return int(operand)
 }
 
 func (keys Keys) MarshalBinary() (buf []byte, err error) {
