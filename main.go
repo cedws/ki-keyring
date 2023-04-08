@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/cedws/pubkey-extract/cmd"
+	"github.com/cedws/ki-keyring/cmd"
 )
 
 func main() {

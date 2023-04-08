@@ -1,4 +1,4 @@
-module github.com/cedws/pubkey-extract
+module github.com/cedws/ki-keyring
 
 go 1.19
 

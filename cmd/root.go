@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cedws/pubkey-extract/keyring"
+	"github.com/cedws/ki-keyring/keyring"
 	"github.com/spf13/cobra"
 )
 

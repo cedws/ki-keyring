@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/cedws/pubkey-extract/scan"
+	"github.com/cedws/ki-keyring/scan"
 	peparser "github.com/saferwall/pe"
 	"golang.org/x/arch/x86/x86asm"
 )
