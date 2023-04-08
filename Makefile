@@ -1,18 +1,14 @@
 LDFLAGS = -s -w
 GOFLAGS = -trimpath -ldflags "$(LDFLAGS)"
 
-define build
-	mkdir -p bin
-	CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) go build -o bin/pubkey-extract-$(1)-$(2) $(GOFLAGS)
-endef
-
 all: release
 
 .PHONY: release
 release:
-	$(call build,windows,amd64)
-	$(call build,linux,amd64)
-	$(call build,darwin,arm64)
+	mkdir -p bin
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o bin/pubkey-extract-windows-amd64.exe $(GOFLAGS)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/pubkey-extract-linux-amd64 $(GOFLAGS)
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/pubkey-extract-darwin-arm64 $(GOFLAGS)
 
 .PHONY: clean
 clean:
