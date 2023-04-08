@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var injectCmd = &cobra.Command{
-	Use: "inject",
+var ejectCmd = &cobra.Command{
+	Use: "eject",
 	Run: func(cmd *cobra.Command, args []string) {
 		gameData, err := os.ReadFile(binPath)
 		if err != nil {
@@ -19,20 +19,6 @@ var injectCmd = &cobra.Command{
 		}
 		kr, err := keyring.Extract(gameData)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		if err := kr.Regenerate(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-
-		newData, err := kr.Inject(gameData)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		if err := os.WriteFile(binPath, newData, 0644); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -50,5 +36,5 @@ var injectCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(injectCmd)
+	rootCmd.AddCommand(ejectCmd)
 }

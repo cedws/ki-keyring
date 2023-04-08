@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -9,29 +8,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	binPath string
-	pretty  bool
-)
+type output struct {
+	Raw     []byte           `json:"raw"`
+	Decoded *keyring.Keyring `json:"decoded"`
+}
+
+var binPath string
 
 var rootCmd = &cobra.Command{
-	Use: "pubkey-extract",
-	Run: func(cmd *cobra.Command, args []string) {
-		gameData, err := os.ReadFile(binPath)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		kr, err := keyring.Extract(gameData)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "    ")
-		enc.Encode(kr)
-	},
+	Use: "ki-keyring",
 }
 
 func init() {
