@@ -2,14 +2,17 @@ package scan
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"strings"
 )
 
-var (
-	ErrInvalidLength = errors.New("invalid pattern length")
-)
+type PatternError struct {
+	Err string
+}
+
+func (e *PatternError) Error() string {
+	return fmt.Sprintf("invalid pattern: %v", e.Err)
+}
 
 type Pattern struct {
 	mask    []bool
@@ -28,7 +31,7 @@ func Parse(pattern string) (*Pattern, error) {
 	pattern = strings.ReplaceAll(pattern, " ", "")
 
 	if len(pattern)%2 != 0 {
-		return nil, ErrInvalidLength
+		return nil, &PatternError{"must be whole bytes, not nibbles"}
 	}
 
 	p := Pattern{
@@ -44,9 +47,8 @@ func Parse(pattern string) (*Pattern, error) {
 
 		byt, err := hex.DecodeString(token)
 		if err != nil {
-			return fmt.Errorf("invalid byte in pattern: %v", token)
+			return &PatternError{fmt.Sprintf("invalid byte %v at position %v", token, i)}
 		}
-
 		if len(byt) != 1 {
 			panic("unexpected len after decoding byte")
 		}

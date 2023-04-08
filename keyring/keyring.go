@@ -20,10 +20,6 @@ const (
 
 var initPattern = scan.MustParse(initSignature)
 
-var (
-	ErrPubkeyLocation = errors.New("failed to locate keyring in game client")
-)
-
 type Key struct {
 	Operand       byte   `json:"operand"`
 	Cipher        string `json:"cipher"`
@@ -247,5 +243,5 @@ func findRawKeys(gameData []byte) ([]byte, error) {
 		}
 	}
 
-	return nil, ErrPubkeyLocation
+	return nil, errors.New("failed to locate keyring in game client")
 }
