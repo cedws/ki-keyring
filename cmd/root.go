@@ -4,14 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cedws/ki-keyring/keyring"
 	"github.com/spf13/cobra"
 )
-
-type output struct {
-	Raw     []byte           `json:"raw"`
-	Decoded *keyring.Keyring `json:"decoded"`
-}
 
 var binPath string
 

@@ -29,7 +29,10 @@ type Key struct {
 	Private       []byte `json:"private"`
 }
 
-type Keyring [keyCount]Key
+type Keyring struct {
+	Raw     []byte        `json:"raw"`
+	Decoded [keyCount]Key `json:"decoded"`
+}
 
 func (k Key) MarshalBinary() ([]byte, error) {
 	var cipher CipherType
@@ -118,48 +121,31 @@ func Extract(gameData []byte) (*Keyring, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(rawKeys) < 1 {
 		return nil, fmt.Errorf("raw key buffer too short")
 	}
+
+	kr := Keyring{
+		Raw: rawKeys,
+	}
 	rawKeys = rawKeys[1:]
 
-	var keyring Keyring
-	if err := keyring.UnmarshalBinary(rawKeys); err != nil {
-		return nil, err
-	}
+	for i := range kr.Decoded {
+		length := 3 + binary.LittleEndian.Uint16(rawKeys[:2])
 
-	return &keyring, nil
-}
-
-func (k Keyring) MarshalBinary() (buf []byte, err error) {
-	for _, key := range k {
-		bytes, err := key.MarshalBinary()
-		if err != nil {
+		if err := kr.Decoded[i].UnmarshalBinary(rawKeys[:length]); err != nil {
 			return nil, err
 		}
 
-		buf = append(buf, bytes...)
+		rawKeys = rawKeys[length:]
 	}
 
-	return
-}
-
-func (k *Keyring) UnmarshalBinary(bytes []byte) error {
-	for i := range k {
-		length := 3 + binary.LittleEndian.Uint16(bytes[:2])
-
-		if err := k[i].UnmarshalBinary(bytes[:length]); err != nil {
-			return err
-		}
-
-		bytes = bytes[length:]
-	}
-
-	return nil
+	return &kr, nil
 }
 
 func (k *Keyring) Regenerate() error {
-	for i := range k {
+	for i := range k.Decoded {
 		keypair, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return err
@@ -169,13 +155,13 @@ func (k *Keyring) Regenerate() error {
 		if err != nil {
 			return err
 		}
-		k[i].Public = pub
+		k.Decoded[i].Public = pub
 
 		priv, err := x509.MarshalPKCS8PrivateKey(keypair)
 		if err != nil {
 			return err
 		}
-		k[i].Private = priv
+		k.Decoded[i].Private = priv
 	}
 
 	return nil
@@ -187,15 +173,22 @@ func (kr *Keyring) Inject(gameData []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(rawKeys) < 1 {
 		return nil, fmt.Errorf("raw key buffer too short")
 	}
 	rawKeys = rawKeys[1:]
 
-	buf, err := kr.MarshalBinary()
-	if err != nil {
-		return nil, err
+	var buf []byte
+	for _, key := range kr.Decoded {
+		bytes, err := key.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+
+		buf = append(buf, bytes...)
 	}
+
 	if len(rawKeys) != len(buf) {
 		panic(fmt.Sprintf("unexpected length diff between original and new key buffer (%v => %v)", len(rawKeys), len(buf)))
 	}

@@ -23,15 +23,9 @@ var ejectCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		raw, err := kr.MarshalBinary()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "    ")
-		enc.Encode(output{raw, kr})
+		enc.Encode(kr)
 	},
 }
 

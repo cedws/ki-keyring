@@ -32,20 +32,14 @@ var injectCmd = &cobra.Command{
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		if err := os.WriteFile(binPath, newData, 0644); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-
-		raw, err := kr.MarshalBinary()
-		if err != nil {
+		if err := os.WriteFile(binPath, newData, 0o644); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "    ")
-		enc.Encode(output{raw, kr})
+		enc.Encode(kr)
 	},
 }
 
