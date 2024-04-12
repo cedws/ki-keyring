@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	initSignature = "48 83 ?? ?? 41 b8 ?? ?? ?? ?? 48 8d ?? ?? ?? ?? ?? 48 8d ?? ?? ?? ?? ?? e8 ?? ?? ?? ?? 48 8d ?? ?? ?? ?? ?? 48 83 ?? ?? e9"
+	initSignature = "48 83 ?? ?? ?? c7 ?? ?? ?? ?? ?? ?? ?? 8b 0d ?? ?? ?? ?? 65 ?? ?? ?? ?? ?? ?? ?? ?? 41 b8 ?? ?? ?? ?? 48 ?? ?? ?? 41"
 	keyCount      = 5
 )
 
@@ -210,24 +210,37 @@ func findRawKeys(gameData []byte) ([]byte, error) {
 	for _, result := range initPattern.Scan(gameData) {
 		addr := result
 
-		inst, _ := x86asm.Decode(gameData[addr:], 64)
+		// skip forward 16 instructions
+		for i := 0; i < 16; i++ {
+			inst, _ := x86asm.Decode(gameData[addr:], 64)
+			addr = addr + uint64(inst.Len)
+		}
+
+		inst, err := x86asm.Decode(gameData[addr:], 64)
+		if err != nil {
+			continue
+		}
 		addr = addr + uint64(inst.Len)
 
-		inst, _ = x86asm.Decode(gameData[addr:], 64)
-		addr = addr + uint64(inst.Len)
-
-		length := inst.Args[1].(x86asm.Imm)
+		length, ok := inst.Args[1].(x86asm.Imm)
 		// roughly the minimum size all keys can be fit into
-		if length < (keyCount * 256) {
+		if !ok || length < (keyCount*256) {
 			continue
 		}
 
-		inst, _ = x86asm.Decode(gameData[addr:], 64)
+		inst, err = x86asm.Decode(gameData[addr:], 64)
+		if err != nil {
+			continue
+		}
 		addr = addr + uint64(inst.Len)
 
-		operand := inst.Args[1].(x86asm.Mem).Disp
+		operand, ok := inst.Args[1].(x86asm.Mem)
+		if !ok {
+			continue
+		}
+		disp := operand.Disp
 
-		start := 0xc00 + pe.GetOffsetFromRva(uint32(addr)+uint32(operand))
+		start := 0xc00 + pe.GetOffsetFromRva(uint32(addr)+uint32(disp))
 		end := start + uint32(length)
 
 		// just additional validation that we've found the right address
