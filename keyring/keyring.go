@@ -12,9 +12,9 @@ import (
 	peparser "github.com/saferwall/pe"
 	"golang.org/x/arch/x86/x86asm"
 )
-
+ 
 const (
-	initSignature = "48 83 EC ?? 8B 0D ?? ?? ?? ?? 65 ?? ?? ?? ?? ?? ?? ?? ?? 41 ?? ??  ?? ?? ?? 48 8B 14 C8 41 8B 04 10 39 05 ?? ?? ?? ?? 7F ??"
+	initSignature = "8B 0D ?? ?? ?? ?? 65 ?? ?? ?? ?? ?? ?? ?? ?? 41 ?? ?? ?? ?? ?? 48 8B 14 C8 41 8B 04 10 39 05 ?? ?? ?? ?? 7F ??"
 	keyCount      = 5
 )
 
@@ -208,44 +208,38 @@ func findRawKeys(gameData []byte) ([]byte, error) {
 	}
 
 	for _, result := range initPattern.Scan(gameData) {
-		addr := result
+		addr := uint64(result)
 
-		// skip forward 15 instructions
-		for i := 0; i < 15; i++ {
-			inst, _ := x86asm.Decode(gameData[addr:], 64)
-			addr = addr + uint64(inst.Len)
-		}
+		for i := 0; i < 40; i++ {
+			inst, err := x86asm.Decode(gameData[addr:], 64)
+			if err != nil {
+				break
+			}
+			addr += uint64(inst.Len)
 
-		inst, err := x86asm.Decode(gameData[addr:], 64)
-		if err != nil {
-			continue
-		}
-		addr = addr + uint64(inst.Len)
+			length, ok := inst.Args[1].(x86asm.Imm)
+			if !ok || length < (keyCount*256) {
+				continue
+			}
 
-		length, ok := inst.Args[1].(x86asm.Imm)
-		// roughly the minimum size all keys can be fit into
-		if !ok || length < (keyCount*256) {
-			continue
-		}
+			inst, err = x86asm.Decode(gameData[addr:], 64)
+			if err != nil {
+				break
+			}
+			addr += uint64(inst.Len)
 
-		inst, err = x86asm.Decode(gameData[addr:], 64)
-		if err != nil {
-			continue
-		}
-		addr = addr + uint64(inst.Len)
+			operand, ok := inst.Args[1].(x86asm.Mem)
+			if !ok {
+				continue
+			}
+			disp := operand.Disp
 
-		operand, ok := inst.Args[1].(x86asm.Mem)
-		if !ok {
-			continue
-		}
-		disp := operand.Disp
+			start := 0xc00 + pe.GetOffsetFromRva(uint32(addr)+uint32(disp))
+			end := start + uint32(length)
 
-		start := 0xc00 + pe.GetOffsetFromRva(uint32(addr)+uint32(disp))
-		end := start + uint32(length)
-
-		// just additional validation that we've found the right address
-		if len(gameData) >= int(start) && gameData[start] == 0x35 {
-			return gameData[start:end:end], nil
+			if len(gameData) >= int(start) && gameData[start] == 0x35 {
+				return gameData[start:end:end], nil
+			}
 		}
 	}
 
