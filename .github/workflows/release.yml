@@ -1,34 +1,79 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Release
 
 on:
   push:
     tags:
-    - '*'
+      - "*"
 
 jobs:
-
-  ubuntu-build:
+  release:
+    name: Release
     runs-on: ubuntu-latest
+    environment: GoReleaser
 
     permissions:
       contents: write
+      packages: write
+      id-token: write
+      attestations: write
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Generate App Token
+        id: generate-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.19
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
 
-    - name: Test
-      run: go test -v ./...
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: "go.mod"
+          cache: false
 
-    - name: Build
-      run: make release
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
 
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        files: bin/*
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4
+        with:
+          image: tonistiigi/binfmt:qemu-v10.2.1@sha256:8db0f28060565399642110b798c6c35efcac7c5b3b48c56d36503d3b4d8f93c8
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Cosign
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7
+        with:
+          version: v2.15.2
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_PUSH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          REPO_VISIBILITY: ${{ github.event.repository.visibility }}
+
+      - name: Attest binaries
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-checksums: ./dist/checksums.txt
+          push-to-registry: false
+
+      - name: Attest containers
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          subject-checksums: ./dist/digests.txt
+          push-to-registry: true
